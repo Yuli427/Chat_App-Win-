@@ -1,6 +1,6 @@
 #include "server.h"
-#include <pthread.h>
-#include <unistd.h>
+#include <stdint.h>
+
 
 
 // Store information about all connected clients
@@ -9,7 +9,7 @@ int acceptedSocketsCount = 0;
 
 
 //accept new client connection
-void startAcceptingIncomingConnections(int serverSocketFD){
+void startAcceptingIncomingConnections(SOCKET serverSocketFD){
 
     while (true)
 
@@ -25,13 +25,13 @@ void startAcceptingIncomingConnections(int serverSocketFD){
 }
 
 // Accept a new client connection and store its information
-struct AcceptedSocket* acceptIncomingConnection(int serverSocketFD){
+struct AcceptedSocket* acceptIncomingConnection(SOCKET serverSocketFD){
 
     struct sockaddr_in clientAddress;
     int clientAddressSize=sizeof(clientAddress);
 
     // Accept a connection and get a new socket for this client
-    int clientSocketFD=accept(serverSocketFD,&clientAddress,&clientAddressSize);
+    SOCKET clientSocketFD=accept(serverSocketFD,(struct sockaddr*)&clientAddress,&clientAddressSize);
     
     // Allocate memory to store the client's connection information
     struct AcceptedSocket* acceptedSocket = malloc(sizeof(struct AcceptedSocket));
@@ -50,20 +50,28 @@ struct AcceptedSocket* acceptIncomingConnection(int serverSocketFD){
 // Start a new thread to receive messages from client
 void receiveAndPrintIncomingDataOnSeperateThread(struct AcceptedSocket*clientSocket){
     
-    pthread_t id;
-    pthread_create(&id,NULL,receiveAndPrintIncomingData,clientSocket->acceptedSocketFD);
+     CreateThread(
+        NULL,
+        0,
+        receiveAndPrintIncomingData,
+        (LPVOID)(uintptr_t)clientSocket->acceptedSocketFD,
+        0,
+        NULL
+    );
 }
 
 
 
-    void receiveAndPrintIncomingData(int socketFD)
+DWORD WINAPI receiveAndPrintIncomingData(LPVOID arg)
     {
+        SOCKET socketFD = (SOCKET)(uintptr_t)arg;
+
         char buffer[1024];
         char username[50];
         char joinMessage[100];
         char leaveMessage[100];
 
-        ssize_t nameRecevied=recv(socketFD, username, 49, 0);
+        int nameRecevied=recv(socketFD, username, 49, 0);
         if (nameRecevied > 0){
 
             username[nameRecevied] = '\0';
@@ -79,7 +87,7 @@ void receiveAndPrintIncomingDataOnSeperateThread(struct AcceptedSocket*clientSoc
         while (true)
         {   
             // Receive a message from the client
-            ssize_t amountRecevied = recv(socketFD, buffer, 1024, 0);
+            int amountRecevied = recv(socketFD, buffer, 1023, 0);
 
             if (amountRecevied > 0)
             {  
@@ -111,22 +119,24 @@ void receiveAndPrintIncomingDataOnSeperateThread(struct AcceptedSocket*clientSoc
             }
         }
     
-    close(socketFD);
+    closesocket(socketFD);
+    return 0;
 }
 
 //broadcast the message
-int sendReceiveMessageToTheOtherClients(char*buffer,int socketFD){
+int sendReceiveMessageToTheOtherClients(char*buffer,SOCKET socketFD){
    // Do not send the message back to the original sender
   for(int i=0;i<acceptedSocketsCount;i++){
     if (acceptedSockets[i].acceptedSocketFD!=socketFD){
         send(acceptedSockets[i].acceptedSocketFD,buffer,strlen(buffer),0);
     }
   }
+ 
 
 }
 
 //helper
-void setSocketUsername(int socketFD, char*name){
+void setSocketUsername(SOCKET socketFD, char*name){
 
         for(int i=0;i<acceptedSocketsCount;i++){
         if( acceptedSockets[i].acceptedSocketFD==socketFD){
@@ -136,7 +146,7 @@ void setSocketUsername(int socketFD, char*name){
     
 }
 
-char* getSocketUsername(int socketFD){
+char* getSocketUsername(SOCKET socketFD){
 
      for(int i=0;i<acceptedSocketsCount;i++){
         if( acceptedSockets[i].acceptedSocketFD==socketFD){

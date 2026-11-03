@@ -1,5 +1,11 @@
+#ifndef CLIENT_H
+#define CLIENT_H
 
+#include <winsock2.h>
+#include <windows.h>
 
-void ListenAndPrint(int SocketFD);
+void startListeningMessagesOnNewThread(SOCKET fd);
 
-void startListeningMessagesOnNewThread(int fd);
+DWORD WINAPI ListenAndPrint(LPVOID arg);
+
+#endif

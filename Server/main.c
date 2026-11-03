@@ -1,23 +1,32 @@
 #include "../Util/socketutil.h"
+#include"server.h"
 
 
 
 
 int main()
 {   
+    // Initialize Winsock
+    WSADATA wsaData;
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
+        printf("Winsock initialization failed.\n");
+        return 1;
+    }
+
     char serverIP[50];
-    size_t serverIpSize = 0;
 
     printf("Please enter your server IP: ");
-    size_t serverIPcount=getline(&serverIP,&serverIpSize,stdin);
-    serverIP[serverIPcount-1]=0;
+    fgets(serverIP,sizeof(serverIP),stdin);
+    serverIP[strcspn(serverIP, "\n")] = '\0';
 
     // Create an IPv4 TCP socket
-    int serverSocketFD= createTCPIpv4Socket();
+    SOCKET serverSocketFD= createTCPIpv4Socket();
     struct sockaddr_in *serverAddress=createIPv4Address(serverIP,2000);
     
     // Bind the socket to the server address and port
-    int result=bind(serverSocketFD,serverAddress,sizeof(*serverAddress));
+    int result=bind(serverSocketFD,(struct sockaddr*)serverAddress,sizeof(*serverAddress));
 
     if(result==0){
         printf("bound successfuly!\n");
@@ -37,7 +46,10 @@ int main()
     // Continuously accept and handle incoming client connections
     startAcceptingIncomingConnections(serverSocketFD);
     
-    shutdown(serverSocketFD,SHUT_RDWR);
+    shutdown(serverSocketFD, SD_BOTH);
+    closesocket(serverSocketFD);
+    WSACleanup();
+
  
     return 0;
 }

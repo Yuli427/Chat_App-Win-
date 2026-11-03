@@ -1,31 +1,33 @@
 #include "client.h"
-#include <pthread.h>
 #include <stdbool.h>
-#include <unistd.h>
-#include <sys/socket.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <winsock2.h>
+#include <windows.h>
 
 // Start a new thread to listen for incoming messages from the server
-void startListeningMessagesOnNewThread(int fd){
+void startListeningMessagesOnNewThread(SOCKET fd){
    
-    pthread_t id;
+    
 
     // Create a new thread that runs ListenAndPrint()
-    pthread_create(&id,NULL,ListenAndPrint,fd);
+     CreateThread(NULL,0,ListenAndPrint,(LPVOID)(uintptr_t)fd,0,NULL);
     
     
 }
 
 // Receive and print messages from the server
-void ListenAndPrint(int SocketFD)
+DWORD WINAPI ListenAndPrint(LPVOID arg)
 {   
+
+    SOCKET SocketFD=(SOCKET)(uintptr_t)arg;
     
     char buffer[1024];
 
     while (true)
     {   
         //Receive data from the server
-        ssize_t amountReceived = recv(SocketFD, buffer, 1024, 0);
+        int amountReceived = recv(SocketFD, buffer, 1023, 0);
 
         if (amountReceived > 0)
         {   
@@ -44,5 +46,6 @@ void ListenAndPrint(int SocketFD)
         }
     }
     
-    close(SocketFD);
+     closesocket(SocketFD);
+     return 0;
 }

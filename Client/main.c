@@ -5,14 +5,23 @@
 
 
 int main(){
+
+    WSADATA wsaData;
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
+        printf("Winsock initialization failed.\n");
+        return 1;
+    }
+
     // Create an IPv4 TCP socket
-    int socketFD=createTCPIpv4Socket();
+    SOCKET socketFD=createTCPIpv4Socket();
     
     //create the server address using localhost and port 2000
     struct sockaddr_in* address= createIPv4Address("127.0.0.1",2000);
     
     // Connect the client socket to the server
-    int result = connect(socketFD,address,sizeof(*address));
+    int result = connect(socketFD,(struct sockaddr*)address,sizeof(*address));
     if(result==0){
         printf("connection was successful.\n");
     }
@@ -23,18 +32,16 @@ int main(){
     //create a buffer for store final message
     char buffer[1024];
     
-
     // store the user's message input
-    char*line=NULL;
-    size_t lineSize=0;
+    char line[512];
     printf("type and we will send..\n");
     
     // store the user's name
-    char*name=NULL;
-    size_t nameSize=0;
+    char name[50];
     printf("Please enter your name: ");
-    ssize_t nameCount=getline(&name,&nameSize,stdin);
-    name[nameCount-1]=0; 
+    
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = '\0';
     
     //send name
     send(socketFD,name,strlen(name),0);
@@ -42,23 +49,24 @@ int main(){
     while(true){
        
         //read message from user
-       ssize_t charCount=getline(&line,&lineSize,stdin); 
+       fgets(line,sizeof(line),stdin); 
+
+        //remove new line character
+       line[strcspn(line, "\n")] = '\0';
 
         //combine username and message
        sprintf(buffer,"%s:%s",name,line);
-        //remove new line character
-       line[charCount-1]=0;
-
-       if(charCount>0){
+       
         if(strcmp(line,"exit")==0){ 
-
+            
             break;
         }
-        ssize_t amountWasSent=send(socketFD,buffer,strlen(buffer),0);
+        int amountWasSent=send(socketFD,buffer,strlen(buffer),0);
        
-    } 
+    
 }
-
+   closesocket(socketFD);
+   WSACleanup();
    return 0;
 }
 

@@ -2,17 +2,14 @@
 #define SOCKETUTIL_SOCKETUTIL_H
 
 #include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 
-
+SOCKET createTCPIpv4Socket();
 struct sockaddr_in* createIPv4Address(char *ip, int port);
-
-int createTCPIpv4Socket();
 
 
 #endif //SOCKETUTIL_SOCKETUTIL_H
